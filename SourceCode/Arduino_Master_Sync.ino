@@ -26,7 +26,8 @@
  */
 
 
- //Defines#######################################################################
+ //Declarations*****************************************************************
+ 
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <TimerOne.h>
@@ -54,6 +55,7 @@
 
 #define BLINK_TIME 4 // LED blink time
 
+int oldPosition;
 volatile int  blinkCount = 0,
               blinkCount2 = 0,
               AudioSyncCount = 0,
@@ -94,7 +96,13 @@ ISR(TIMER2_OVF_vect)
 
 MIDI_CREATE_DEFAULT_INSTANCE();
 
-void setup(void) {
+
+
+
+ //Setup************************************************************************
+
+void setup(void) 
+{
   pinMode(clock, OUTPUT); // make the clock pin an output
   pinMode(data, OUTPUT); // make the data pin an output3
   pinMode(diplay1, OUTPUT);
@@ -111,11 +119,13 @@ void setup(void) {
   MIDI.turnThruOff();
 
   bpm = EEPROMReadInt(0);
-  if (bpm > MAXIMUM_BPM || bpm < MINIMUM_BPM) {
+  if (bpm > MAXIMUM_BPM || bpm < MINIMUM_BPM) 
+  {
     bpm = 120;
   }
   audio_sync2 = EEPROMReadInt(3);
-  if (audio_sync2 > 64 || audio_sync2 < 2) {
+  if (audio_sync2 > 64 || audio_sync2 < 2) 
+  {
     audio_sync2 = 12;
   }
    
@@ -127,55 +137,11 @@ void setup(void) {
   
 }
 
-void EEPROMWriteInt(int p_address, int p_value)
-     {
-     byte lowByte = ((p_value >> 0) & 0xFF);
-     byte highByte = ((p_value >> 8) & 0xFF);
 
-     EEPROM.write(p_address, lowByte);
-     EEPROM.write(p_address + 1, highByte);
-     }
+ //Loop*************************************************************************
 
-unsigned int EEPROMReadInt(int p_address)
-     {
-     byte lowByte = EEPROM.read(p_address);
-     byte highByte = EEPROM.read(p_address + 1);
-
-     return ((lowByte << 0) & 0xFF) + ((highByte << 8) & 0xFF00);
-}
-
-void bpm_display() { 
-  updateBpm();
-  EEPROMWriteInt(0,bpm);  
-  display_update = false;
-}
-
-void sync_display() {
-  EEPROMWriteInt(3,audio_sync2);
-  
-  int sync_current;
-  sync_current = audio_sync2 - 12;  
-  
-  if (sync_current < 0) {    
-    sync_current = abs(sync_current);
-  } else if (sync_current > 0) {
-    sync_current = -sync_current;
-  }
-}
-
-void startOrStop() {
-  if (!playing) {
-    MIDI.sendRealTime(midi::Start);
-  } else {
-    all_off();
-    MIDI.sendRealTime(midi::Stop);
-  }
-  playing = !playing;
-}
-
-int oldPosition;
-
-void loop(void) {
+void loop(void) 
+{
   byte i = 0;
   byte p = 0;
 
@@ -183,94 +149,165 @@ void loop(void) {
   setDisplayNumber(2, (bpm / 10) % 10);
   setDisplayNumber(3, (bpm / 100) % 10);
   
-  if (digitalRead(BUTTON_START) == LOW) {
+  if (digitalRead(BUTTON_START) == LOW) 
+  {
     startOrStop();
     delay(300); // ugly but just make life easier, no need to check debounce
   }
   
   int newPosition = (myEnc.read()/4);
-  if (newPosition != oldPosition) {    
-    if (oldPosition < newPosition) {
+  if (newPosition != oldPosition) 
+  {    
+    if (oldPosition < newPosition) 
+    {
       i = 2;
-    } else if (oldPosition > newPosition) {
+    } else if (oldPosition > newPosition) 
+    {
       i = 1;
     }
     oldPosition = newPosition;
   }
   
-  if (!sync_editing) {      
-      if (i == 2) {
+  if (!sync_editing) 
+  {      
+      if (i == 2) 
+      {
         bpm++;
-        if (bpm > MAXIMUM_BPM) {
+        if (bpm > MAXIMUM_BPM) 
+        {
           bpm = MAXIMUM_BPM;
         }
         bpm_display();          
-      } else if (i == 1) {
+      } 
+      else if (i == 1) 
+      {
         bpm--;
-        if (bpm < MINIMUM_BPM) {
+        if (bpm < MINIMUM_BPM) 
+        {
           bpm = MINIMUM_BPM;
         }
         bpm_display();
-      } else if (p == 1) {
+      } 
+      else if (p == 1) 
+      {
         //rotary.resetPush();
         sync_display();
         sync_editing = true;
       }
-  } else  { // 2nd jack audio sync speed
-      if (p == 1) {      
-        bpm_display();
-        sync_editing = false;
-      } else if (i == 1) {      
-        audio_sync2++;
-        if (audio_sync2 > 64) { audio_sync2 = 64; }
-        sync_display();
-      } else if (i == 2) {
-        audio_sync2--;
-        if (audio_sync2 < 2) { audio_sync2 = 2; }
-        sync_display();
-      }      
   }
 }
 
-void all_off() { // make sure all sync, led pin stat to low
+
+
+ //Definitions*************************************************************************
+
+void EEPROMWriteInt(int p_address, int p_value)
+{
+   byte lowByte = ((p_value >> 0) & 0xFF);
+   byte highByte = ((p_value >> 8) & 0xFF);
+
+   EEPROM.write(p_address, lowByte);
+   EEPROM.write(p_address + 1, highByte);
+}
+
+unsigned int EEPROMReadInt(int p_address)
+{
+   byte lowByte = EEPROM.read(p_address);
+   byte highByte = EEPROM.read(p_address + 1);
+
+   return ((lowByte << 0) & 0xFF) + ((highByte << 8) & 0xFF00);
+}
+
+void bpm_display() 
+{ 
+  updateBpm();
+  EEPROMWriteInt(0,bpm);  
+  display_update = false;
+}
+
+void sync_display() 
+{
+  EEPROMWriteInt(3,audio_sync2);
+  
+  int sync_current;
+  sync_current = audio_sync2 - 12;  
+  
+  if (sync_current < 0) 
+  {    
+    sync_current = abs(sync_current);
+  } 
+  else if (sync_current > 0) 
+  {
+    sync_current = -sync_current;
+  }
+}
+
+void startOrStop() 
+{
+  if (!playing) 
+  {
+    MIDI.sendRealTime(midi::Start);
+  } else 
+  {
+    all_off();
+    MIDI.sendRealTime(midi::Stop);
+  }
+  playing = !playing;
+}
+
+void all_off() 
+{ // make sure all sync, led pin stat to low
   digitalWrite(SYNC_OUTPUT_PIN, LOW);
   digitalWrite(SYNC_OUTPUT_PIN2, LOW);
   digitalWrite(LED_PIN1, LOW);
 }
 
-void sendClockPulse() {  
+void sendClockPulse() 
+{  
   MIDI.sendRealTime(midi::Clock); // sending midi clock
   
-  if (playing) {  
-  
-  blinkCount = (blinkCount + 1) % CLOCKS_PER_BEAT;
-  blinkCount2 = (blinkCount2 + 1) % (CLOCKS_PER_BEAT / 2);
-  AudioSyncCount = (AudioSyncCount + 1) % AUDIO_SYNC;
-  AudioSyncCount2 = (AudioSyncCount2 + 1) % audio_sync2;
+  if (playing) 
+  {  
+    blinkCount = (blinkCount + 1) % CLOCKS_PER_BEAT;
+    blinkCount2 = (blinkCount2 + 1) % (CLOCKS_PER_BEAT / 2);
+    AudioSyncCount = (AudioSyncCount + 1) % AUDIO_SYNC;
+    AudioSyncCount2 = (AudioSyncCount2 + 1) % audio_sync2;
 
-  if (AudioSyncCount == 0) {
+    if (AudioSyncCount == 0) 
+    {
       digitalWrite(SYNC_OUTPUT_PIN, HIGH); 
-  } else {        
-    if (AudioSyncCount == 1) {     
-      digitalWrite(SYNC_OUTPUT_PIN, LOW);
-    }
-  }  
+    } 
+    else 
+    {        
+      if (AudioSyncCount == 1) 
+      {     
+        digitalWrite(SYNC_OUTPUT_PIN, LOW);
+      }
+    }  
 
-  if (AudioSyncCount2 == 0) {
+    if (AudioSyncCount2 == 0) 
+    {
       digitalWrite(SYNC_OUTPUT_PIN2, HIGH);
-  } else {        
-    if (AudioSyncCount2 == 1) {
+    } 
+    else 
+    {        
+    if (AudioSyncCount2 == 1) 
+    {
       digitalWrite(SYNC_OUTPUT_PIN2, LOW);
     }
-  }
+    }
   
-  if (blinkCount == 0) {
+    if (blinkCount == 0) 
+    {
       digitalWrite(LED_PIN1, HIGH);      
-  } else {
-     if (blinkCount == BLINK_TIME) {
-       digitalWrite(LED_PIN1, LOW);      
-     }
-  }
+    } 
+    else 
+    {
+      if (blinkCount == BLINK_TIME) 
+      {
+        digitalWrite(LED_PIN1, LOW);      
+      }
+    }
   } // if playing
 }
 
